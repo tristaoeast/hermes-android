@@ -21,14 +21,17 @@ can download and install it on their Android device via browser.
 ## This fork stays pinned to the reviewed tag
 
 `tristaoeast/hermes-android` is a personal fork of `rusty4444/hermes-android`,
-pinned to **`v2.1.20` (`46bcc4b`)**, the release covered by the security review.
+pinned to **`v2.1.22` (`2f81f5c`)**, the release covered by the security review:
+a full review of `v2.1.20` (`46bcc4b`), then a review of the
+`v2.1.20..v2.1.22` diff, which passed (verdict CLEAN, 2026-10-18; report
+`~/workspaces/security-reviews/hermes-android/hermes-android-v2.1.20-to-v2.1.22-diff-review.md`).
 Its default branch carries no upstream commit after that tag; GitHub Actions
 are disabled on the fork so upstream workflows never run there.
 
 - The `upstream` remote exists only to diff future releases. **Never merge or
   pull from it.**
 - Syncing to a newer upstream release requires a security review of
-  `git diff <reviewed-tag>..<new-tag>` (e.g. `v2.1.20..v2.1.21`) **first**.
+  `git diff <reviewed-tag>..<new-tag>` (e.g. `v2.1.22..v2.1.23`) **first**.
   Only after that review passes may the default branch move to the new tag.
 - Build only from a clean tree at the reviewed tag. Tooling changes on this
   fork (like this skill) must not touch app code.
@@ -43,7 +46,7 @@ bash .claude/skills/serve-apks/scripts/build-release-arm64.sh
 ```
 
 It refuses a dirty tree and a Flutter version other than the one
-`.github/workflows/release.yml` pins (3.44.0 for v2.1.20), looking first in
+`.github/workflows/release.yml` pins (3.44.0 for v2.1.22), looking first in
 `~/flutter-sdks/<version>/` (`FLUTTER=<path>` to override). Then it runs
 `flutter pub get --enforce-lockfile` and
 
@@ -55,7 +58,7 @@ flutter build apk --release --split-per-abi --target-platform android-arm64 \
 and checks that the APK's signer is the pinned release certificate (see
 Signing). Output:
 `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`, versionCode
-`<base>*10+2` (21602 for v2.1.20), which matches upstream's split scheme.
+`<base>*10+2` (21652 for v2.1.22), which matches upstream's split scheme.
 
 ### Memory — never let the build thrash the host
 
