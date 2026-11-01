@@ -1,10 +1,10 @@
 ---
-name: serve-apks
-description: Build a signed arm64 release APK of this pinned Hermes Android fork and serve it over HTTP for installation on an Android device. Use when the user wants to build, send, transfer or install the Hermes APK on their phone.
+name: build-release
+description: "Build a signed arm64 release APK of this pinned Hermes Android fork from the security-reviewed tag. Use when the user wants to build or release the Hermes APK; putting it on a phone is /tmichub:serve-apks."
 disable-model-invocation: true
 ---
 
-# Serve APKs
+# Build the Hermes release APK
 
 ## User Input
 
@@ -14,9 +14,8 @@ $ARGUMENTS
 
 ## Goal
 
-Build the release APK from the security-reviewed tag, stage it under `dist/`
-with a descriptive filename, then serve that directory over HTTP so the user
-can download and install it on their Android device via browser.
+Build the release APK from the security-reviewed tag, signed with this fork's pinned release key, then hand it to
+`/tmichub:serve-apks`, which publishes it and serves it to the phone.
 
 ## This fork stays pinned to the reviewed tag
 
@@ -42,7 +41,7 @@ are disabled on the fork so upstream workflows never run there.
 From a clean checkout at the reviewed tag:
 
 ```bash
-bash .claude/skills/serve-apks/scripts/build-release-arm64.sh
+bash .claude/skills/build-release/scripts/build-release-arm64.sh
 ```
 
 It refuses a dirty tree and a Flutter version other than the one
@@ -134,49 +133,19 @@ that app fails with a signature mismatch: uninstall it first (export
 connections first if needed, since the uninstall wipes its data). Later
 release-key builds update in place.
 
-## Step 2: Start Server
+## Step 2: Serve
 
-Run `scripts/start.sh` (relative to this skill's base directory) in the
-**foreground**; it returns within seconds:
+Run `/tmichub:serve-apks` from this checkout. It publishes
+`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` into the shared directory as
+`hermes-android-<versionName>-<versionCode>-arm64-v8a-release-<build time>.apk` and serves it on port 9120 beside
+every other app's builds.
 
-```bash
-bash .claude/skills/serve-apks/scripts/start.sh
-```
-
-It starts `scripts/serve.sh` in its own tmux session (`apk-serve-<repo dir>`,
-i.e. `apk-serve-hermes-android` from the main checkout) for **48 hours**
-(`SERVE_HOURS=<n>` to change), then prints the server's output and when it
-stops. `serve.sh` copies each freshly built, **signed** APK from
-`build/app/outputs/flutter-apk/` (Gradle's `build/app/outputs/apk/*/` if that is
-empty) into `dist/` as `hermes-android-<versionName>-<abi>-<buildType>.apk`,
-writes `dist/SHA256SUMS`, then serves `dist/`.
-
-Do **not** run `serve.sh` as a Claude Code background command: the Bash tool
-kills background commands when their limit runs out, at most 2 hours. A tmux
-session belongs to the tmux server, so it outlives that limit and the Claude
-session itself.
-
-To stop it early: `bash .claude/skills/serve-apks/scripts/start.sh --stop`.
-
-## Step 3: Display Access URLs
-
-After the server starts, show the URLs from the script output (local network IP
-and Tailscale DNS name) and the APK's SHA-256, so the user can reach the APK
-from their device and check it.
+The build script's last line still says to serve with the old `start.sh`. That script is gone; the build
+script is kept byte-for-byte as reviewed. Use `/tmichub:serve-apks` instead.
 
 ## Operating Principles
 
-- `start.sh` restarts a session that is already running, because `serve.sh`
-  stages new builds only when it starts, so after a rebuild just run it again
-- If `tmux` is missing, `start.sh` says so and exits 2; fall back to running
-  `serve.sh` as a background command, and tell the user it stops within 2 hours
-- Base port is 9110; if busy, the script tries 9111, 9112, … up to 9119
-  (gallery-dl-mobile uses 9100-9109 and tera-gallery 9090-9099, so they don't collide)
-- Always show both local network IP and Tailscale DNS name
-- `dist/` is gitignored. It holds build artifacts only, and old builds stay
-  there until manually deleted so the user can roll back to a previous APK
-- `serve.sh` stages from the **git toplevel**, so run inside a worktree it stages
-  into that worktree's `dist/` and serves only that build
+- This skill builds; it never starts a server. Serving is `/tmichub:serve-apks`.
 - **Installing over an upstream-signed install fails** with a signature
   mismatch (upstream releases are signed with the maintainer's key). Uninstall
   the upstream app first. That wipes its data, so export connections first if
